@@ -1,0 +1,88 @@
+#!/bin/bash
+echo ""
+print_usage() {
+
+	me="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
+	echo ""
+	echo ""
+	echo "  Usage: $me : <Target Architecture CPU> <Android NDK Path> <optional:job count>"
+	echo ""
+	echo "    Target Architecture CPU : arm, x86"
+	echo "    Android NDK Path        : path to NDK"
+	echo "                              e.g. /android/android-ndk-r10e (must be r10e)"
+	echo "    Job Count               : number of threads to build with"
+	echo ""
+	exit -1
+}
+
+CPU=$1
+ANDROID_NDK=$2
+BUILD_OS=linux-x86_64
+TOOLCHAIN_VERSION=4.9
+SYSROOT=$ANDROID_NDK/platforms/android-21/arch-$CPU/
+
+if [ "$CPU" == "" ]; then
+	echo "Missing Target Architecture CPU parameter"
+	print_usage
+elif [ "$ANDROID_NDK" == "" ]; then	
+	echo "Missing Android NDK Path parameter"
+	print_usage
+fi
+
+
+TOOLCHAIN_ARCH=
+TOOLCHAIN_BIN_PREFIX=
+if [ "$CPU" == "arm" ]; then
+    TOOLCHAIN_ARCH=arm-linux-androideabi
+    TOOLCHAIN_BIN_PREFIX=arm-linux-androideabi
+elif [ "$CPU" == "x86" ]; then
+    TOOLCHAIN_ARCH=x86
+    TOOLCHAIN_BIN_PREFIX=i686-linux-android
+fi
+
+TOOLCHAIN=$ANDROID_NDK/toolchains/$TOOLCHAIN_ARCH-$TOOLCHAIN_VERSION/prebuilt/$BUILD_OS
+PREFIX=$(pwd)/android/$CPU
+MAKE_CMD=$ANDROID_NDK/prebuilt/$BUILD_OS/bin/make
+JOBS=$3
+if [ "$JOBS" = "" ]; then
+JOBS=1
+fi
+
+SKIP_CLEAN=$4
+
+cd ./FFmpeg
+ret=$?
+if [ $ret -eq 0 ]; then
+
+    if [ "$SKIP_CLEAN" != "" ]; then
+        echo "Skipping clean"
+    else
+        $MAKE_CMD clean
+    fi
+    ret=$?
+    if [ $ret -eq 0 ]; then
+    
+        $MAKE_CMD -j$JOBS
+        ret=$?
+        if [ $ret -eq 0 ]; then
+         
+            $MAKE_CMD install
+            ret=$?
+            if [ $ret -eq 0 ]; then
+                echo "Build finished"
+            else
+                echo "Make install failed"
+            fi
+        else
+            echo "Make failed"
+        fi
+    else
+        echo "Make clean failed"
+    fi
+
+    cd ..
+else
+    echo "Failed to move to FFmpeg directory"
+fi
+
+exit $ret

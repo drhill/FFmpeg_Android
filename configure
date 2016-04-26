@@ -1,0 +1,112 @@
+#!/bin/bash
+echo ""
+print_usage() {
+
+	me="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
+	echo ""
+	echo ""
+	echo "  Usage: $me : <Target Architecture CPU> <Android NDK Path>"
+	echo "                        <Build OS> <Toolchain Version>"
+	echo ""
+	echo "    Target Architecture CPU : arm, x86"
+	echo "    Android NDK Path        : path to NDK"
+	echo "                              e.g. /android/android-ndk-r10e (must be r10e)"
+	echo ""
+	exit -1
+}
+
+CPU=$1
+ANDROID_NDK=$2
+BUILD_OS=linux-x86_64
+TOOLCHAIN_VERSION=4.9
+SYSROOT=$ANDROID_NDK/platforms/android-21/arch-$CPU/
+
+if [ "$CPU" == "" ]; then
+	echo "Missing Target Architecture CPU parameter"
+	print_usage
+elif [ "$ANDROID_NDK" == "" ]; then	
+	echo "Missing Android NDK Path parameter"
+	print_usage
+fi
+
+echo "Configuring FFmpeg for $CPU with $ANDROID_NDK"
+
+TOOLCHAIN_ARCH=
+TOOLCHAIN_BIN_PREFIX=
+if [ "$CPU" == "arm" ]; then
+    TOOLCHAIN_ARCH=arm-linux-androideabi
+    TOOLCHAIN_BIN_PREFIX=arm-linux-androideabi
+elif [ "$CPU" == "x86" ]; then
+    TOOLCHAIN_ARCH=x86
+    TOOLCHAIN_BIN_PREFIX=i686-linux-android
+fi
+TOOLCHAIN=$ANDROID_NDK/toolchains/$TOOLCHAIN_ARCH-$TOOLCHAIN_VERSION/prebuilt/$BUILD_OS
+PREFIX=$(pwd)/android/$CPU
+
+# Set these if needed
+FF_FLAGS=" "
+CC_FLAGS="-w -fpic -pipe -Os -fexceptions -frtti -DANDROID -DNDEBUG "
+if [ "$CPU" = "arm" ]; then
+    CC_FLAGS="$CC_FLAGS -march=armv7-a -mtune=cortex-a9 -mfloat-abi=softfp -mfpu=neon "
+    FF_FLAGS="$FF_FLAGS --cpu=cortex-a9 --enable-pic --disable-armv5te --disable-armv6t2 "
+else
+    CC_FLAGS="$CC_FLAGS -march=atom -msse3 -ffast-math -mfpmath=sse "
+    FF_FLAGS="$FF_FLAGS --cpu=i686 --disable-mmx "
+fi
+CX_FLAGS="$CC_FLAGS -frtti"
+
+cd ./FFmpeg
+ret=$?
+if [ $ret -eq 0 ]; then
+
+	./configure \
+        --prefix=$PREFIX \
+        --enable-shared \
+        --disable-static \
+        --disable-symver \
+        --disable-devices \
+        --disable-doc \
+        --disable-ffplay \
+        --disable-ffmpeg \
+        --disable-ffprobe \
+        --disable-ffserver \
+        --disable-sdl \
+        --enable-gpl \
+        --enable-runtime-cpudetect \
+        --enable-postproc \
+        --enable-pthreads \
+        --enable-muxer=spdif \
+        --enable-muxer=adts \
+        --enable-muxer=asf \
+        --enable-muxer=ipod \
+        --enable-encoder=ac3 \
+        --enable-encoder=aac \
+        --enable-encoder=wmav2 \
+        --enable-protocol=http \
+        --enable-encoder=png \
+        --enable-encoder=mjpeg \
+        --cross-prefix=$TOOLCHAIN/bin/$TOOLCHAIN_BIN_PREFIX- \
+        --enable-cross-compile \
+        --cpu=$CPU \
+        --arch=$CPU \
+        --target-os=linux \
+        --sysroot=$SYSROOT \
+        --pkg-config=pkg-config \
+        --pkg-config-flags="--static" \
+        --extra-cflags="$CC_FLAGS" \
+        --extra-cxxflags="$CX_FLAGS" \
+        $FF_FLAGS 
+        
+    ret=$?
+    cd ..
+    
+    if [ $ret -eq 0 ]; then
+        echo "Configured"
+    else
+        echo "Failed to configure"
+    fi
+else
+    echo "Failed to move to FFmpeg directory"
+fi
+
+exit $ret

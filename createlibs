@@ -1,0 +1,52 @@
+#!/bin/bash
+echo ""
+print_usage() {
+
+	me="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
+	echo ""
+	echo ""
+	echo "  Usage: $me : <Target Architecture CPU> <Android NDK Path> <optional:job count>"
+	echo ""
+	echo "    Target Architecture CPU : arm, x86 (comma seperated)"
+	echo "    Android NDK Path        : path to NDK"
+	echo "                              e.g. /android/android-ndk-r11c"
+	echo "    Job Count               : number of threads to build with"
+	echo ""
+	exit -1
+}
+
+build_lib() {
+
+	CPU=$1
+	./configure "$CPU" "$ANDROID_NDK"
+	ret=$?
+    if [ $ret -eq 0 ]; then
+        ./build $CPU $ANDROID_NDK $JOBS
+        ret=$?
+    fi
+    return $ret
+}
+
+IFS=', ' read -r -a CPU_TYPES <<< "$1"
+ANDROID_NDK=$2
+JOBS=$3
+
+if [ "$ANDROID_NDK" == "" ]; then    
+    echo "Missing Android NDK Path parameter"
+    print_usage
+fi
+
+for i in "${CPU_TYPES[@]}"
+do
+    build_lib "$i"
+    ret=$?
+    if [ $ret -ne 0 ]; then
+    
+        echo "Could not create $i"
+        exit -1
+    fi
+done
+
+echo ""
+echo "Finished creating libs"
+echo ""
