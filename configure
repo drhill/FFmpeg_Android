@@ -61,8 +61,8 @@ if [ $ret -eq 0 ]; then
 
 	./configure \
         --prefix=$PREFIX \
-        --enable-shared \
-        --disable-static \
+        --enable-static \
+        --disable-shared \
         --disable-symver \
         --disable-devices \
         --disable-doc \
