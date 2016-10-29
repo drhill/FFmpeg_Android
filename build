@@ -62,8 +62,9 @@ if [ $ret -eq 0 ]; then
 	rm *.o
 	rm */*.o
 	rm */*/*.o
+	
     fi
-    ret=$?
+    
     if [ $ret -eq 0 ]; then
     
         $MAKE_CMD -j$JOBS
