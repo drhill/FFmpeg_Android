@@ -57,7 +57,11 @@ if [ $ret -eq 0 ]; then
     if [ "$SKIP_CLEAN" != "" ]; then
         echo "Skipping clean"
     else
+	echo "Cleaning"
         $MAKE_CMD clean
+	rm *.o
+	rm */*.o
+	rm */*/*.o
     fi
     ret=$?
     if [ $ret -eq 0 ]; then
@@ -69,7 +73,8 @@ if [ $ret -eq 0 ]; then
             $MAKE_CMD install
             ret=$?
             if [ $ret -eq 0 ]; then
-                echo "Build finished"
+                echo "Build finished, Cleaning"
+		$MAKE_CMD clean
             else
                 echo "Make install failed"
             fi
