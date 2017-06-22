@@ -51,7 +51,7 @@ if [ "$CPU" = "arm" ]; then
     FF_FLAGS="$FF_FLAGS --cpu=cortex-a9 --enable-pic --disable-armv5te --disable-armv6t2 "
 else
     CC_FLAGS="$CC_FLAGS -march=atom -msse3 -ffast-math -mfpmath=sse "
-    FF_FLAGS="$FF_FLAGS --cpu=i686 --disable-mmx "
+    FF_FLAGS="$FF_FLAGS --cpu=i686 --disable-mmx --disable-asm "
 fi
 CX_FLAGS="$CC_FLAGS -frtti"
 
@@ -63,35 +63,16 @@ if [ $ret -eq 0 ]; then
         --prefix=$PREFIX \
         --disable-static \
         --enable-shared \
-        --disable-symver \
-        --disable-devices \
-        --disable-programs \
-	--disable-avdevice \
-	--disable-avformat \
-	--disable-swscale \
-	--disable-doc \
-	--disable-postproc \
-        --disable-ffplay \
-        --disable-ffmpeg \
-        --disable-ffprobe \
-        --disable-ffserver \
-        --disable-sdl \
-	--disable-avfilter \
-	--disable-swscale \
-        --enable-gpl \
-        --enable-runtime-cpudetect \
-        --enable-pthreads \
-        --enable-muxer=spdif \
-        --enable-muxer=adts \
-        --enable-muxer=asf \
-        --enable-muxer=ipod \
-        --enable-encoder=ac3 \
-        --enable-encoder=aac \
-        --enable-encoder=wmav2 \
-        --enable-protocol=http \
-        --enable-encoder=png \
-        --enable-encoder=mjpeg \
-	--enable-avresample \
+    --disable-doc \
+    --disable-programs \
+    --disable-avdevice \
+    --disable-avformat \
+    --disable-swscale \
+    --disable-postproc \
+    --disable-avfilter \
+    --disable-symver \
+    --disable-swresample \
+    --enable-avresample \
         --cross-prefix=$TOOLCHAIN/bin/$TOOLCHAIN_BIN_PREFIX- \
         --enable-cross-compile \
         --cpu=$CPU \
@@ -102,6 +83,7 @@ if [ $ret -eq 0 ]; then
         --pkg-config-flags="--static" \
         --extra-cflags="$CC_FLAGS" \
         --extra-cxxflags="$CX_FLAGS" \
+    --extra-ldexeflags=-pie \
         $FF_FLAGS 
         
     ret=$?
